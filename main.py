@@ -34,9 +34,22 @@ def q1(spark_context: SparkContext, on_server: bool) -> (RDD, RDD):
 
     # TODO: Implement Q1 here
 
-    cleaned_events = None
-    cleaned_event_types = None
+    event_RDD = spark_context.textFile(events_file_path)
+    event_type_RDD = spark_context.textFile(event_types_file_path)
 
+    event_RDD_filtered = event_RDD.filter(
+        lambda line: len(line.split(',')) == 3 and all(map(lambda x: x.isdigit(), line.split(','))))
+    event_type_RDD_filtered = event_type_RDD.filter(
+        lambda line: len(line.split(',')) == 2 and all(map(lambda x: x.isdigit(), line.split(','))))
+
+    cleaned_events = event_RDD_filtered.collect()
+    cleaned_event_types = event_type_RDD_filtered.collect()
+
+    print(f'[q11: {event_RDD_filtered.count()}]')
+    print(f'[q12: {event_type_RDD_filtered.count()}]')
+    print(f'[q13: {event_RDD.count() - event_RDD_filtered.count()}]')
+    print(f'[q14: {event_type_RDD.count() - event_type_RDD_filtered.count()}]')
+    
     return cleaned_events, cleaned_event_types
 
 
