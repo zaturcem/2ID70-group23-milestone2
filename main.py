@@ -45,10 +45,7 @@ def q1(spark_context: SparkContext, on_server: bool) -> (RDD, RDD):
     cleaned_events = event_RDD_filtered.collect()
     cleaned_event_types = event_type_RDD_filtered.collect()
 
-    print(f'[q11: {event_RDD_filtered.count()}]')
-    print(f'[q12: {event_type_RDD_filtered.count()}]')
-    print(f'[q13: {event_RDD.count() - event_RDD_filtered.count()}]')
-    print(f'[q14: {event_type_RDD.count() - event_type_RDD_filtered.count()}]')
+    print(f""">>[q11: {event_RDD_filtered.count()}]\n>>[q12: {event_type_RDD_filtered.count()}]\n>>[q13: {event_RDD.count() - event_RDD_filtered.count()}]\n>>[q14: {event_type_RDD.count() - event_type_RDD_filtered.count()}]""")
     
     return cleaned_events, cleaned_event_types
 
