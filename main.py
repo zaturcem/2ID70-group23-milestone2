@@ -37,15 +37,14 @@ def q1(spark_context: SparkContext, on_server: bool) -> (RDD, RDD):
     event_RDD = spark_context.textFile(events_file_path)
     event_type_RDD = spark_context.textFile(event_types_file_path)
 
-    event_RDD_filtered = event_RDD.filter(
+    cleaned_events = event_RDD.filter(
         lambda line: len(line.split(',')) == 3 and all(map(lambda x: x.isdigit(), line.split(','))))
-    event_type_RDD_filtered = event_type_RDD.filter(
+    cleaned_event_types = event_type_RDD.filter(
         lambda line: len(line.split(',')) == 2 and all(map(lambda x: x.isdigit(), line.split(','))))
 
-    cleaned_events = event_RDD_filtered.collect()
-    cleaned_event_types = event_type_RDD_filtered.collect()
 
-    print(f""">>[q11: {event_RDD_filtered.count()}]\n>>[q12: {event_type_RDD_filtered.count()}]\n>>[q13: {event_RDD.count() - event_RDD_filtered.count()}]\n>>[q14: {event_type_RDD.count() - event_type_RDD_filtered.count()}]""")
+
+    print(f""">>[q11: {cleaned_events.count()}]\n>>[q12: {cleaned_event_types.count()}]\n>>[q13: {event_RDD.count() - cleaned_events.count()}]\n>>[q14: {event_type_RDD.count() - cleaned_event_types.count()}]""")
     
     return cleaned_events, cleaned_event_types
 
@@ -63,6 +62,66 @@ def q3(spark_context: SparkContext, events: RDD, event_types: RDD):
 
 def q4(spark_context: SparkContext, events: RDD, event_types: RDD):
     # TODO: Implement Q4 here
+
+    # Join the RDDs
+    joined_RDD = events.map(lambda x: (x.split(',')[2], (x.split(',')[0], x.split(',')[1]))).join(event_types.map(lambda x: ((x.split(',')[0], x.split(',')[1]))))
+
+    # eventid, seriesid, timestamp, eventtypeid
+    RDDQ4 = joined_RDD.map(lambda x: (x[0], x[1][0][0], x[1][0][1], x[1][1]))
+
+    # sort by timestamp
+    RDDQ4_time = RDDQ4.sortBy(lambda x: (x[1], x[2]))
+
+    # group by seriesid
+    RDDQ4_seriesgroup = RDDQ4_time.groupBy(lambda x: x[1])
+
+    #def extract_sequences(seq):
+    #    sequence = []
+    #    for line in seq:
+    #        sequence += [line[3]]
+    #    sequences = []
+
+    #    for i in range(len(seq)-4):
+    #        sequences += [list(sequence)[i:i + 5]]
+    #    return sequences
+
+    #sequences_rdd = RDDQ4_seriesgroup.flatMap(lambda x: extract_sequences(x[1]))
+    #counts = sequences_rdd.reduceByKey(lambda a, b: a+b)
+    #print(counts.take(100))
+    #sequences = sequences_rdd.collect()
+    #------------------------------------------------------------------------------------------------------------------
+
+    def find_l_frequent_type_sequences_within_series (event_types: RDD, lambda_value: int = 5, sequence_size: int = 5):
+                # Generate and count sequences within each series
+        def generate_and_count_sequences(event_types):
+            sequences = {}
+
+            sequence_all = []
+            for line in event_types:
+                sequence_all += [line[3]]
+
+            for i in range(len(event_types) - sequence_size + 1):
+                sequence = tuple(sequence_all[j] for j in range(i, i + sequence_size))
+                if sequence in sequences.keys():
+                    sequences[sequence] += 1
+                else:
+                    sequences[sequence] = 1
+            # Filter sequences by λ value within this series
+            return [(sequence, count) for sequence, count in sequences.items() if count >= lambda_value]
+
+        # FlatMap to transform and filter sequences within each series
+        lambda_frequent_sequences_rdd = event_types.flatMap(lambda x: generate_and_count_sequences(x[1]))
+
+        # Map to sequence only and remove duplicates across all series
+        distinct_sequences = lambda_frequent_sequences_rdd.map(lambda sequence_count: sequence_count[0]).distinct()
+
+        # Count the number of distinct λ-frequent sequences
+        num_distinct_sequences = distinct_sequences.count()
+
+        print(f""">> [q4: {num_distinct_sequences}""")
+    #------------------------------------------------------------------------------------------------------------
+
+    find_l_frequent_type_sequences_within_series(RDDQ4_seriesgroup)
     return
 
 
