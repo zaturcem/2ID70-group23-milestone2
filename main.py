@@ -244,15 +244,6 @@ def find_l_frequent_sequences_within_series(spark_context: SparkContext, events:
 
     print(f"Number of distinct λ-frequent sequences of size {sequence_size} within series: {num_distinct_sequences}")
 
-# Example usage
-# Assuming spark_context is an initialized SparkContext and events is the list of events
-
-
-
-# Assuming spark_context is an initialized SparkContext and events is your input list
-# Example usage
-# find_l_frequent_sequences_without_combinations(spark_context, events)
-
 
 
 def q4(spark_context: SparkContext, events: RDD, event_types: RDD):
