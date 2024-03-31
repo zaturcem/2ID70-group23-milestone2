@@ -1,7 +1,5 @@
 from pyspark import SparkConf, SparkContext, RDD
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType
-import time
 
 # The code below may help you if your pc cannot find the correct python executable.
 # Don't use this code on the server!
@@ -54,128 +52,47 @@ def q1(spark_context: SparkContext, on_server: bool) -> (RDD, RDD):
 def q2(spark_context: SparkContext, events: list, event_types: list):
     spark_session = SparkSession(spark_context)
     # TODO: Implement Q2 here
-    # Split each element in the events list by commas and create a Row object
-    # rows = [Row(*event.split(',')) for event in events]
 
-    # # Create a DataFrame from the rows
-    # df_events = spark_session.createDataFrame(rows)
+    # convert each string in the RDDs into a list of integers and then directly to DataFrames with column names
+    events_df = spark_context.parallelize(events, numSlices=20) \
+        .map(lambda x: [int(y) for y in x.split(',')]) \
+        .toDF(["seriesid", "timestamp", "eventid"])
 
-    # # Show the DataFrame
-    # df_events.show()
+    event_types_df = spark_context.parallelize(event_types, numSlices=20) \
+        .map(lambda x: [int(y) for y in x.split(',')]) \
+        .toDF(["eventid", "eventtypeid"])
 
-    #----------- 
-    start_time = time.time()
-    events_rdd = spark_context.parallelize(events, numSlices=20)
-    event_types_rdd = spark_context.parallelize(event_types, numSlices=20)
-
-    # Convert each string in the RDDs into a list of integers
-    events_rdd = events_rdd.map(lambda x: [int(y) for y in x.split(',')])
-
-    event_types_rdd = event_types_rdd.map(lambda x: [int(y) for y in x.split(',')])
-
-
-    # Define the schema of the DataFrames
-    schema_events = StructType([
-        StructField("seriesid", IntegerType(), True),
-        StructField("timestamp", IntegerType(), True),
-        StructField("eventid", IntegerType(), True)
-    ])
-
-    schema_event_types = StructType([
-        StructField("eventid", IntegerType(), True),
-        StructField("eventtypeid", IntegerType(), True)
-    ])
-
-    # Convert the RDDs into a DataFrames
-    events_df = spark_session.createDataFrame(events_rdd, schema_events)
-
-    event_types_df = spark_session.createDataFrame(event_types_rdd, schema_event_types)
-
-    # Cache the events DataFrame and broadcast the event_types DataFrame
-    # events_df.cache()
-    # event_types_df_broadcast = broadcast(event_types_df)
-
-    # broadcast_joined_df = events_df.join(event_types_df_broadcast, events_df["eventid"] == event_types_df_broadcast["eventid"])
-
-    # broadcast_joined_df.createOrReplaceTempView("broadcast_joined_events_event_types")
-    # events_df.createOrReplaceTempView("events")
-
-    # result_q21 = spark_session.sql("""
-    # SELECT COUNT(*) AS count
-    # FROM events e1
-    # JOIN events e2 ON e1.timestamp + 1 = e2.timestamp AND e1.seriesid = e2.seriesid
-    # JOIN events e3 ON e2.timestamp + 1 = e3.timestamp AND e2.seriesid = e3.seriesid
-    # WHERE e1.eventid = 109 AND e2.eventid = 145 AND e3.eventid = 125
-    # """).collect()[0][0]
-
-    # print(f">>[q21 optimized: {result_q21}]")
-
-    # result = spark_session.sql("""
-    # SELECT COUNT(*) AS count
-    # FROM broadcast_joined_events_event_types e1
-    # JOIN broadcast_joined_events_event_types e2 ON e1.timestamp + 1 = e2.timestamp AND e1.seriesid = e2.seriesid
-    # JOIN broadcast_joined_events_event_types e3 ON e2.timestamp + 1 = e3.timestamp AND e2.seriesid = e3.seriesid
-    # WHERE e1.eventtypeid = 2 AND e2.eventtypeid = 11 AND e3.eventtypeid = 6
-    # """).collect()[0][0]
-
-    # print(f">>[q22 optimized: {result}]")
-
-    # elapsed_time = time.time() - start_time
-    # print(f"Query execution time: {elapsed_time} seconds")
-
-    # Register the DataFrames as temporary views
-
+    # cache the events DataFrame since it's used multiple times in the queries
     events_df.cache()
 
+    # register the DataFrames as temporary views for SQL queries
     events_df.createOrReplaceTempView("events")
     event_types_df.createOrReplaceTempView("event_types")
 
     # SparkSQL to count the occurrences of the event sequence "109,145,125"
-    result = spark_session.sql("""
-        SELECT COUNT(*) AS count
-            FROM events e1
-            JOIN events e2 ON e1.timestamp + 1 = e2.timestamp AND e1.seriesid = e2.seriesid
-            JOIN events e3 ON e2.timestamp + 1 = e3.timestamp AND e2.seriesid = e3.seriesid
-            WHERE e1.eventid = 109 AND e2.eventid = 145 AND e3.eventid = 125
-    """).collect()[0][0]
-
-    print(f">>[q21: {result}]")
-    
-    # Use SparkSQL to count the occurrences of the event sequence "2,11,6"
-    result = spark_session.sql("""
+    result_q21 = spark_session.sql("""
         SELECT COUNT(*) AS count
         FROM events e1
-        
-        JOIN events e2 ON e1.timestamp +1 = e2.timestamp AND e1.seriesid = e2.seriesid
-        JOIN events e3 ON e2.timestamp +1 = e3.timestamp AND e2.seriesid = e3.seriesid
-                               
+        JOIN events e2 ON e1.timestamp + 1 = e2.timestamp AND e1.seriesid = e2.seriesid
+        JOIN events e3 ON e2.timestamp + 1 = e3.timestamp AND e2.seriesid = e3.seriesid
+        WHERE e1.eventid = 109 AND e2.eventid = 145 AND e3.eventid = 125
+    """).collect()[0][0]
+
+    print(f">>[q21: {result_q21}]")
+
+    # SparkSQL to count the occurrences of the event sequence "2,11,6"
+    result_q22 = spark_session.sql("""
+        SELECT COUNT(*) AS count
+        FROM events e1
+        JOIN events e2 ON e1.timestamp + 1 = e2.timestamp AND e1.seriesid = e2.seriesid
+        JOIN events e3 ON e2.timestamp + 1 = e3.timestamp AND e2.seriesid = e3.seriesid
         JOIN event_types et1 ON e1.eventid = et1.eventid
         JOIN event_types et2 ON e2.eventid = et2.eventid
         JOIN event_types et3 ON e3.eventid = et3.eventid
-                               
         WHERE et1.eventtypeid = 2 AND et2.eventtypeid = 11 AND et3.eventtypeid = 6
     """).collect()[0][0]
 
-    print(f">>[q22: {result}]")
-
-    elapsed_time = time.time() - start_time
-    print(f"Query execution time: {elapsed_time} seconds")
-
-    # result = spark_session.sql("""
-    #     SELECT eventid, timestamp
-    #         FROM events e1
-    #         WHERE e1.eventid = 6
-    # """).collect()
-    
-    # result_df = spark_session.createDataFrame(result)
-
-    # # Show the DataFrame
-    # result_df.show()
-
-
-
-    # e1.eventid, e2.eventid, e3.eventid, e1.timestamp, e2.timestamp, e3.timestamp ,et1.eventtypeid, et2.eventtypeid, et3.eventtypeid
-        
+    print(f">>[q22: {result_q22}]")
 
 
     pass
@@ -258,11 +175,11 @@ if __name__ == '__main__':
 
     cleaned_events, cleaned_event_types = q1(spark_context, on_server)
 
-    # q2(spark_context, cleaned_events, cleaned_event_types)
+    q2(spark_context, cleaned_events, cleaned_event_types)
 
     # q3(spark_context, cleaned_events, cleaned_event_types)
 
-    find_l_frequent_sequences_within_series(spark_context, cleaned_events)
+    # find_l_frequent_sequences_within_series(spark_context, cleaned_events)
 
     # q4(spark_context, cleaned_events, cleaned_event_types)
 
