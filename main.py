@@ -41,8 +41,8 @@ def q1(spark_context: SparkContext, on_server: bool) -> (RDD, RDD):
     event_type_RDD_filtered = event_type_RDD.filter(
         lambda line: len(line.split(',')) == 2 and all(map(lambda x: x.isdigit(), line.split(','))))
 
-    cleaned_events = event_RDD_filtered.collect()
-    cleaned_event_types = event_type_RDD_filtered.collect()
+    cleaned_events = event_RDD_filtered.map(lambda x: [int(y) for y in x.split(',')])
+    cleaned_event_types = event_type_RDD_filtered.map(lambda x: [int(y) for y in x.split(',')])
 
     print(f""">>[q11: {event_RDD_filtered.count()}]\n>>[q12: {event_type_RDD_filtered.count()}]\n>>[q13: {event_RDD.count() - event_RDD_filtered.count()}]\n>>[q14: {event_type_RDD.count() - event_type_RDD_filtered.count()}]""")
     
