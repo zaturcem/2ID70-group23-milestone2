@@ -49,18 +49,14 @@ def q1(spark_context: SparkContext, on_server: bool) -> (RDD, RDD):
     return cleaned_events, cleaned_event_types
 
 
-def q2(spark_context: SparkContext, events: list, event_types: list):
+def q2(spark_context: SparkContext, events: RDD, event_types: RDD):
     spark_session = SparkSession(spark_context)
     # TODO: Implement Q2 here
 
     # convert each string in the RDDs into a list of integers and then directly to DataFrames with column names
-    events_df = spark_context.parallelize(events, numSlices=20) \
-        .map(lambda x: [int(y) for y in x.split(',')]) \
-        .toDF(["seriesid", "timestamp", "eventid"])
+    events_df = events.toDF(["seriesid", "timestamp", "eventid"])
 
-    event_types_df = spark_context.parallelize(event_types, numSlices=20) \
-        .map(lambda x: [int(y) for y in x.split(',')]) \
-        .toDF(["eventid", "eventtypeid"])
+    event_types_df = event_types.toDF(["eventid", "eventtypeid"])
 
     # cache the events DataFrame since it's used multiple times in the queries
     events_df.cache()
@@ -98,42 +94,10 @@ def q2(spark_context: SparkContext, events: list, event_types: list):
     pass
 
 
-def q3(spark_context: SparkContext, events: list, event_types: list):
+def q3(spark_context: SparkContext, events: RDD, event_types: RDD):
     # TODO: Implement Q3 here
-    spark_session = SparkSession(spark_context)
-
-    events_rdd = spark_context.parallelize(events, numSlices=20)
-
-    # Convert each string in the RDDs into a list of integers
-    events_rdd = events_rdd.map(lambda x: [int(y) for y in x.split(',')])
-
-    # # Define the schema of the DataFrames
-    # schema_events = StructType([
-    #     StructField("seriesid", IntegerType(), True),
-    #     StructField("timestamp", IntegerType(), True),
-    #     StructField("eventid", IntegerType(), True)
-    # ])
-
-
-    # event_RDD_series_4 = events_rdd.filter(lambda x : x[0]== 4)
-
-    # event_RDD_sortby_4 = event_RDD_series_4.sortBy(lambda x : x[1])
-
-    # event_df = spark_session.createDataFrame(event_RDD_sortby_4, schema=schema_events)
-    # event_df.show()
-
-
-    pass
-
-def find_l_frequent_sequences_within_series(spark_context: SparkContext, events: list, lambda_value: int = 5, sequence_size: int = 3):
-    # Parallelize the input events list
-    events_rdd = spark_context.parallelize(events)
-
-    # Convert each event string to a list of integers
-    events_rdd = events_rdd.map(lambda event: [int(part) for part in event.split(',')])
-
     # Group events by the series ID and sort each group by timestamp
-    events_grouped_by_series = events_rdd.groupBy(lambda event: event[0]).map(
+    events_grouped_by_series = events.groupBy(lambda event: event[0]).map(
         lambda group: (group[0], sorted(list(group[1]), key=lambda event: event[1]))
     )
 
@@ -141,14 +105,14 @@ def find_l_frequent_sequences_within_series(spark_context: SparkContext, events:
     def generate_and_count_sequences(events):
         _, events_list = events
         sequences = {}
-        for i in range(len(events_list) - sequence_size + 1):
-            sequence = tuple(events_list[j][2] for j in range(i, i + sequence_size))
+        for i in range(len(events_list) - 3 + 1):
+            sequence = tuple(events_list[j][2] for j in range(i, i + 3))
             if sequence in sequences:
                 sequences[sequence] += 1
             else:
                 sequences[sequence] = 1
         # Filter sequences by λ value within this series
-        return [(sequence, count) for sequence, count in sequences.items() if count >= lambda_value]
+        return [(sequence, count) for sequence, count in sequences.items() if count >= 5]
 
     # FlatMap to transform and filter sequences within each series
     lambda_frequent_sequences_rdd = events_grouped_by_series.flatMap(generate_and_count_sequences)
@@ -156,12 +120,9 @@ def find_l_frequent_sequences_within_series(spark_context: SparkContext, events:
     # Map to sequence only and remove duplicates across all series
     distinct_sequences = lambda_frequent_sequences_rdd.map(lambda sequence_count: sequence_count[0]).distinct()
 
-    # Count the number of distinct λ-frequent sequences
-    num_distinct_sequences = distinct_sequences.count()
+    print(f">>[q3: {distinct_sequences.count()}]")
 
-    print(f"Number of distinct λ-frequent sequences of size {sequence_size} within series: {num_distinct_sequences}")
-
-
+    pass
 
 def q4(spark_context: SparkContext, events: RDD, event_types: RDD):
     # TODO: Implement Q4 here
@@ -177,10 +138,8 @@ if __name__ == '__main__':
 
     q2(spark_context, cleaned_events, cleaned_event_types)
 
-    # q3(spark_context, cleaned_events, cleaned_event_types)
+    q3(spark_context, cleaned_events, cleaned_event_types)
 
-    # find_l_frequent_sequences_within_series(spark_context, cleaned_events)
+    q4(spark_context, cleaned_events, cleaned_event_types)
 
-    # q4(spark_context, cleaned_events, cleaned_event_types)
-
-    # spark_context.stop()
+    spark_context.stop()
