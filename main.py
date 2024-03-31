@@ -29,7 +29,7 @@ def get_spark_context(on_server: bool) -> SparkContext:
 
 def q1(spark_context: SparkContext, on_server: bool) -> (RDD, RDD):
     events_file_path = "/events.csv" if on_server else "events.csv"
-    event_types_file_path = "/event_types.csv" if on_server else "event_types.csv"
+    event_types_file_path = "/eventtypes.csv" if on_server else "event_types.csv"
 
     # TODO: Implement Q1 here
 
@@ -44,7 +44,11 @@ def q1(spark_context: SparkContext, on_server: bool) -> (RDD, RDD):
     cleaned_events = event_RDD_filtered.map(lambda x: [int(y) for y in x.split(',')])
     cleaned_event_types = event_type_RDD_filtered.map(lambda x: [int(y) for y in x.split(',')])
 
-    print(f""">>[q11: {event_RDD_filtered.count()}]\n>>[q12: {event_type_RDD_filtered.count()}]\n>>[q13: {event_RDD.count() - event_RDD_filtered.count()}]\n>>[q14: {event_type_RDD.count() - event_type_RDD_filtered.count()}]""")
+    event_count = event_RDD.count()
+    event_type_count = event_type_RDD.count()
+    event_filtered_count = event_RDD_filtered.count()
+    event_type_filtered_count = event_type_RDD_filtered.count()
+    print(f""">>[q11: {event_filtered_count}]\n>>[q12: {event_type_filtered_count}]\n>>[q13: {event_count - event_filtered_count}]\n>>[q14: {event_type_count - event_type_filtered_count}]""")
     
     return cleaned_events, cleaned_event_types
 
