@@ -134,7 +134,7 @@ def q4(spark_context: SparkContext, events: RDD, event_types: RDD):
 
 
 if __name__ == '__main__':
-    on_server = False  # TODO: Set this to true if and only if deploying to the server
+    on_server = True  # TODO: Set this to true if and only if deploying to the server
 
     spark_context = get_spark_context(on_server)
 
