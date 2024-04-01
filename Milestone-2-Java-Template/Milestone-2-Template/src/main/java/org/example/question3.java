@@ -11,7 +11,7 @@ import java.util.*;
 
 public class question3 {
     public static void solution(SparkSession spark, JavaRDD<String> eventsRDD) {
-        // Convert the eventsRDD into a PairRDD with seriesid as key and the rest as value
+        // convert the eventsRDD into a PairRDD with seriesid as key and the rest as value
         JavaPairRDD<Long, Tuple2<Long, Long>> eventsPairRDD = eventsRDD.mapToPair(
                 (PairFunction<String, Long, Tuple2<Long, Long>>) s -> {
                     String[] parts = s.split(",");
@@ -21,10 +21,10 @@ public class question3 {
                     return new Tuple2<>(seriesid, new Tuple2<>(timestamp, eventid));
                 });
 
-        // Group by series ID
+        // group by series ID
         JavaPairRDD<Long, Iterable<Tuple2<Long, Long>>> groupedEvents = eventsPairRDD.groupByKey();
 
-        // Sort each group by timestamp and then map each group to its sorted list
+        // sort each group by timestamp and then map each group to its sorted list
         JavaPairRDD<Long, List<Tuple2<Long, Long>>> sortedGroupedEvents = groupedEvents.mapValues(
                 (Iterable<Tuple2<Long, Long>> s) -> {
                     List<Tuple2<Long, Long>> sortedList = new ArrayList<>();
@@ -33,7 +33,7 @@ public class question3 {
                     return sortedList;
                 });
 
-        // Generate and count sequences within each series, filtering by the lambda value (count >= 5)
+        // generate and count sequences of size 3 within each series, filtering by the lambda value (count >= 5)
         JavaRDD<Tuple2<List<Long>, Integer>> sequences = sortedGroupedEvents.flatMap(
                 (FlatMapFunction<Tuple2<Long, List<Tuple2<Long, Long>>>, Tuple2<List<Long>, Integer>>) seriesEntry -> {
                     Map<List<Long>, Integer> sequenceCounts = new HashMap<>();
@@ -51,7 +51,7 @@ public class question3 {
                     return filteredSequences.iterator();
                 });
 
-        // Map to sequence only and remove duplicates across all series
+        // map to sequence only and remove duplicates across all series
         JavaRDD<List<Long>> distinctSequences = sequences.map(Tuple2::_1).distinct();
 
         int q3 = (int) distinctSequences.count();

@@ -7,11 +7,12 @@ import java.util.Arrays;
 
 public class question2 {
     public static void solution(SparkSession spark, JavaRDD<String> eventsRDD, JavaRDD<String> eventTypesRDD) {
-        // Convert JavaRDD<String> to Dataset<Row> for events
+        // convert JavaRDD<String> to Dataset<Row> for events
         JavaRDD<Row> eventsRowRDD = eventsRDD.map(line -> {
             String[] parts = line.split(",");
             return RowFactory.create(Long.valueOf(parts[0]), Long.valueOf(parts[1]), Long.valueOf(parts[2]));
         });
+        // schema for events df and create dataframe
         StructType eventsSchema = DataTypes.createStructType(new StructField[]{
             DataTypes.createStructField("seriesid", DataTypes.LongType, false),
             DataTypes.createStructField("timestamp", DataTypes.LongType, false),
@@ -19,21 +20,22 @@ public class question2 {
         });
         Dataset<Row> eventsDF = spark.createDataFrame(eventsRowRDD, eventsSchema);
 
-        // Convert JavaRDD<String> to Dataset<Row> for event types
+        // convert JavaRDD<String> to Dataset<Row> for event types
         JavaRDD<Row> eventTypesRowRDD = eventTypesRDD.map(line -> {
             String[] parts = line.split(",");
             return RowFactory.create(Long.valueOf(parts[0]), Long.valueOf(parts[1]));
         });
+        // schema for event_types and create df
         StructType eventTypesSchema = DataTypes.createStructType(new StructField[]{
             DataTypes.createStructField("eventid", DataTypes.LongType, false),
             DataTypes.createStructField("eventtypeid", DataTypes.LongType, false)
         });
         Dataset<Row> eventTypesDF = spark.createDataFrame(eventTypesRowRDD, eventTypesSchema);
 
-        // Cache the events DataFrame since it's used multiple times
+        // cache the events DataFrame since it's used multiple times
         eventsDF.cache();
 
-        // Register the DataFrames as temporary views for SQL queries
+        // temporary views of df for SQL queries
         eventsDF.createOrReplaceTempView("events");
         eventTypesDF.createOrReplaceTempView("event_types");
 

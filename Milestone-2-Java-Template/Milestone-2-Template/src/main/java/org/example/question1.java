@@ -6,7 +6,7 @@ import scala.Tuple2;
 
 public class question1 {
     public static Tuple2<JavaRDD<String>, JavaRDD<String>> solution(SparkSession spark, JavaRDD<String> eventsRDD, JavaRDD<String> eventTypesRDD) {
-        // Filtering and cleaning eventsRDD based on conditions
+    
         JavaRDD<String> cleanedEventsRDD = eventsRDD.filter(
                 line -> {
                     String[] parts = line.split(",");
@@ -14,7 +14,6 @@ public class question1 {
                 }
         );
 
-        // Filtering and cleaning eventTypesRDD based on conditions
         JavaRDD<String> cleanedEventTypesRDD = eventTypesRDD.filter(
                 line -> {
                     String[] parts = line.split(",");
@@ -22,7 +21,7 @@ public class question1 {
                 }
         );
 
-        // Counting for logging purposes
+        // counting for logging purposes
         long eventCount = eventsRDD.count();
         long eventTypeCount = eventTypesRDD.count();
         long eventFilteredCount = cleanedEventsRDD.count();
@@ -34,14 +33,5 @@ public class question1 {
         System.out.println(">> [q14: " + (eventTypeCount - eventTypeFilteredCount) + "]");
 
         return new Tuple2<>(cleanedEventsRDD, cleanedEventTypesRDD);
-    }
-
-    private static boolean allDigits(String[] parts) {
-        for (String part : parts) {
-            if (!part.matches("\\d+")) {
-                return false;
-            }
-        }
-        return true;
     }
 }
