@@ -36,8 +36,8 @@ public class Main {
         Tuple2<JavaRDD<String>, JavaRDD<String>> cleaned = question1.solution(spark, eventsRDD, eventTypesRDD);
         JavaRDD<String> df1 = cleaned._1();
         JavaRDD<String> df2 = cleaned._2();
-        question2.solution(spark, df1, df2);
-        question3.solution(spark, df1);
-        question4.solution(spark, df1, df2);
+        // question2.solution(spark, df1, df2);
+        // question3.solution(spark, df1);
+        // question4.solution(spark, df1, df2);
     }
 }
